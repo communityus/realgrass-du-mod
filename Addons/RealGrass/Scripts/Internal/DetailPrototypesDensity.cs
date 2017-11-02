@@ -1,4 +1,4 @@
-﻿// Project:         Real Grass for Daggerfall Unity
+// Project:         Real Grass for Daggerfall Unity
 // Web Site:        http://forums.dfworkshop.net/viewtopic.php?f=14&t=17
 // License:         MIT License (http://www.opensource.org/licenses/mit-license.php)
 // Source Code:     https://github.com/TheLacus/realgrass-du-mod
@@ -27,8 +27,8 @@ namespace RealGrass
 
         // Water plants
         bool waterPlants;
-        Range<int> waterPlantsDensity;
-        Range<int> desertDensity;
+        int waterPlantsDensity;
+        Range<int> waterPlantsBushDensity;
 
         // Stones
         bool terrainStones;
@@ -343,16 +343,16 @@ namespace RealGrass
                                 // Mountain: grass
                                 if (currentClimate == Climate.Mountain || currentClimate == Climate.Mountain2)
                                 {
-                                    details2[y * 2, x * 2] = Random.Range(1, 2);
-                                    details2[(y * 2) + 1, (x * 2) + 1] = Random.Range(1, 2);
+                                    details2[y * 2, x * 2] = RandomWaterPlants();
+                                    details2[(y * 2) + 1, (x * 2) + 1] = RandomWaterPlants();
                                 }
                                 // Temperate: waterlilies
                                 else if (currentClimate == Climate.Temperate || currentClimate == Climate.Temperate2)
                                 {
-                                    details2[y * 2, x * 2] = 1;
-                                    details2[(y * 2) + 1, (x * 2) + 1] = 1;
-                                    details2[(y * 2) + 1, x * 2] = 1;
-                                    details2[y * 2, (x * 2) + 1] = 1;
+                                    details2[y * 2, x * 2] = RandomWaterlilies();
+                                    details2[(y * 2) + 1, (x * 2) + 1] = RandomWaterlilies();
+                                    details2[(y * 2) + 1, x * 2] = RandomWaterlilies();
+                                    details2[y * 2, (x * 2) + 1] = RandomWaterlilies();
                                 }
                             }
                             break;
@@ -440,40 +440,40 @@ namespace RealGrass
                     {
                         // Left side
                         case 84:
-                            details1[(y * 2) + 1, x * 2] = RandomDesert();
-                            details1[y * 2, x * 2] = RandomDesert();
+                            details1[(y * 2) + 1, x * 2] = RandomWaterPlants();
+                            details1[y * 2, x * 2] = RandomWaterPlants();
                             break;
                         // Lower side
                         case 85:
-                            details1[y * 2, (x * 2) + 1] = RandomDesert();
-                            details1[y * 2, (x * 2)] = RandomDesert();
+                            details1[y * 2, (x * 2) + 1] = RandomWaterPlants();
+                            details1[y * 2, (x * 2)] = RandomWaterPlants();
                             break;
                         // Right side
                         case 86:
-                            details1[(y * 2) + 1, (x * 2) + 1] = RandomDesert();
-                            details1[y * 2, (x * 2) + 1] = RandomDesert();
+                            details1[(y * 2) + 1, (x * 2) + 1] = RandomWaterPlants();
+                            details1[y * 2, (x * 2) + 1] = RandomWaterPlants();
                             break;
                         // Upper side
                         case 87:
-                            details1[(y * 2) + 1, (x * 2) + 1] = RandomDesert();
-                            details1[(y * 2) + 1, x * 2] = RandomDesert();
+                            details1[(y * 2) + 1, (x * 2) + 1] = RandomWaterPlants();
+                            details1[(y * 2) + 1, x * 2] = RandomWaterPlants();
                             break;
                         // Corners
                         case 88:
-                            details1[y * 2, x * 2] = RandomDesert();
-                            details1[(y * 2) + 1, (x * 2) + 1] = RandomDesert();
+                            details1[y * 2, x * 2] = RandomWaterPlants();
+                            details1[(y * 2) + 1, (x * 2) + 1] = RandomWaterPlants();
                             break;
                         case 89:
-                            details1[y * 2, (x * 2) + 1] = RandomDesert();
-                            details1[(y * 2) + 1, x * 2] = RandomDesert();
+                            details1[y * 2, (x * 2) + 1] = RandomWaterPlants();
+                            details1[(y * 2) + 1, x * 2] = RandomWaterPlants();
                             break;
                         case 90:
-                            details1[y * 2, x * 2] = RandomDesert();
-                            details1[(y * 2) + 1, (x * 2) + 1] = RandomDesert();
+                            details1[y * 2, x * 2] = RandomWaterPlants();
+                            details1[(y * 2) + 1, (x * 2) + 1] = RandomWaterPlants();
                             break;
                         case 91:
-                            details1[y * 2, (x * 2) + 1] = RandomDesert();
-                            details1[(y * 2) + 1, x * 2] = RandomDesert();
+                            details1[y * 2, (x * 2) + 1] = RandomWaterPlants();
+                            details1[(y * 2) + 1, x * 2] = RandomWaterPlants();
                             break;
                     }
                 }
@@ -505,15 +505,21 @@ namespace RealGrass
         /// </summary>
         private int RandomWaterPlants()
         {
-            return waterPlantsDensity.Random();
+            if (Random.Range(0, 100) < waterPlantsDensity)
+                return waterPlantsBushDensity.Random();
+
+            return 0;
         }
 
         /// <summary>
-        /// Generate random values for the placement of desert grass.
+        /// Generate random values for the placement of waterlilies.
         /// </summary>
-        private int RandomDesert()
+        private int RandomWaterlilies()
         {
-            return desertDensity.Random();
+            if (Random.Range(0, 100) < waterPlantsDensity)
+                return 1;
+
+            return 0;
         }
 
         /// <summary>
@@ -571,8 +577,8 @@ namespace RealGrass
             thinDensity = settings.GetTupleInt(grassSection, "ThinDensity");
 
             // Water plants
-            waterPlantsDensity = settings.GetTupleInt(waterPlantsSection, "Density");
-            desertDensity = settings.GetTupleInt(waterPlantsSection, "DesertDensity");
+            waterPlantsDensity = settings.GetInt(waterPlantsSection, "Density", 0, 100);
+            waterPlantsBushDensity = settings.GetTupleInt(waterPlantsSection, "BushDensity");
 
             // Stones
             stonesDensity = settings.GetTupleInt(stonesSection, "Density");

@@ -1,4 +1,4 @@
-﻿=================================================================================================
+=================================================================================================
 REAL GRASS
 
 2.0 for DaggerFall Unity 0.4.36
@@ -24,48 +24,68 @@ It is possible to customize this mod from the mod settings in-game.
 Presets with default values are available, but it's possible to customize them individually.
 If you create an interesting combination, do not forget to share your own preset!
 
-- WaterPlants
-Places vegetation near water areas, like lakes and river.
-There is a total of four different plants, for the same number of climate regions: mountain, temperate, 
-desert and swamp. They all have two variations, summer and winter. 
-You can choose to show the winter version during this season, or not to show them like the grass.
+* Grass
 
-Additionally it places waterlilies above the surface of temperate lakes and some tufts 
-of grass inside the mountain water zones.
-Plants bend in the wind and waterlilies move slightly on the water surface moved by the same wind. 
+    - Size
+    The size of grass is determined by a minimum and a maximum value for height and width. 
 
-- TerrainStones 
-Places little stones on the cultivated grounds near farms.
+    - Density
+    Thick and thin values affect the number of objects per terrain tile. Higher or lower numbers
+    determine the amount of items, while the delta between the min and max affect the homogeneity or
+    variety among all tiles.
 
-**Grass, plants and stones**
+    - NoiseSpread
+    The spread of the variety of grass, an higher number causes a more varied placement inside the tile.
+    It doesn't affect the number of objects.
 
-- Size
-The size of grass is determined by a minimum and a maximum value for height and width. 
+    - UseGrassShader
+    Real Grass can use GrassBillboard or Grass render mode. GrassBillboard makes the grass images rotate
+    so that they always face the camera and it's the cheapest option.
+    When 'UseGrassShader' is enabled, the Grass render mode is used.  This can help creating a more
+    realistic grass, but it's up to personal preferences.
 
-- Density
-Thick and thin values (separated for grass, water plants, desert plants and stones) affect
-the number of objects per terrain tile. Higher or lower numbers determine the density, while
-the delta between the min and max affect the homogeneity or variety among all tiles.
+* Water Plants
 
-- NoiseSpread
-The spread of the variety of grass, an higher number causes a more varied placement.
-It doesn't affect the number of objects.
+    Places vegetation near water areas, like lakes and river.
+    There is a total of four different plants, for the same number of climate regions: mountain, temperate, 
+    desert and swamp. They all have two variations, summer and winter. 
+    You can choose to show the winter version during this season, or not to show them like the grass.
 
-- UseGrassShader
-By default Real Grass uses the GrassBillboard render mode. This makes the grass images rotate
-so that they always face the camera and it's the cheapest option.
-When 'UseGrassShader' is enabled, the Grass render mode is used instead. 
-This can help creating a more realistic grass, but it's up to personal preferences.
+    Additionally it places waterlilies above the surface of temperate lakes and some tufts 
+    of grass inside the mountain water zones.
+    Plants bend in the wind and waterlilies move slightly on the water surface moved by the same wind.
 
-**Terrain**
+    - Density and BushDensity
+    Density is the chance a plant is positioned on a tile. This affects the total number of items and
+    their homogeneity. 100% means disposition is totally random, lower values cause vegetation to dispose
+    in bushes. Similar to Grass Density, BushDensity affects the number of plants per tile.
 
-- DetailDistance
-The distance from camera beyond which the grass will be culled.
-Lower values can increase performance.
+    For example, 100-(3,3) places 3 plants on all water tiles, 30-(3,3) places 3 plants on 30% of water tiles.
+    100-(0,6) creates a totally varied disposition, 30-(1,6) create bushes of varied density.
+    In general, increasing BushDensity and reducing Density allow an equally thick vegetation with a more
+    realistic disposition, while increasing delta of BushDensity make for a more pleasant randomicity.
 
-- DetailDensity
-1.0 is the original density, as decided by Thick and Thin. 
-Lower values result in less detail objects being rendered, increasing performance.
+    - NoiseSpread
+    The spread of the variety of water plants, an higher number causes a more varied placement
+    inside the tile. It doesn't affect the number of objects.
+
+* Terrain Stones
+
+    Ditto as grass but for terrain land instead of grassy land. Places little stones on the
+    cultivated grounds near farms.
+
+* Flowers
+
+    Places additional vegetation on terrain. Settings are equivalent to Water plants settings.
+
+* Terrain
+
+    - DetailDistance
+    The distance from camera beyond which the grass will be culled. Lower values can increase performance.
+
+    - DetailDensity
+    1.0 is the original density, as decided by specific settings.. 
+    Lower values result in less detail objects being rendered, increasing performance.
 
 **PRESETS**
 -------------------------------------------------------------------------------------------------
@@ -134,6 +154,11 @@ Github: https://github.com/TheLacus/realgrass-du-mod
 
 **CHANGELOG**
 -------------------------------------------------------------------------------------------------
+2.1
+* Graphical improvements of water plants.
+* Improvements for water plants algorithm: now they appear in bushes/groups, more or less
+    pronounced according to settings. This allows a more realistic and pleasant disposition.
+
 2.0
 * Support for flowers
 * Settings presets are more user-friendly
