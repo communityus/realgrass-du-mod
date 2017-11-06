@@ -9,6 +9,8 @@
 using UnityEngine;
 using DaggerfallWorkshop.Utility;
 using DaggerfallWorkshop;
+using DaggerfallConnect.Arena2;
+using DaggerfallWorkshop.Game;
 
 namespace RealGrass
 {
@@ -71,7 +73,7 @@ namespace RealGrass
         /// <summary>
         /// Set density for Summer.
         /// </summary>
-        public void SetDensitySummer(Color32[] tilemap, ClimateBases currentClimate)
+        public void SetDensitySummer(Terrain terrain, Color32[] tilemap, ClimateBases currentClimate)
         {
             for (int y = 0; y < tilemapSize; y++)
             {
@@ -473,6 +475,90 @@ namespace RealGrass
                     }
                 }
             }
+        }
+
+        public void CleanDetailMap(DaggerfallLocation dfLocation)
+        {
+            var terrainObject = GameManager.Instance.StreamingWorld.GetTerrainFromPixel(dfLocation.Summary.MapPixelX, dfLocation.Summary.MapPixelY);
+            Terrain terrain = terrainObject.GetComponent<Terrain>();
+            TerrainData terrainData = terrain.terrainData;
+            TerrainCollider terrainCollider = terrain.GetComponent<TerrainCollider>();
+
+            var map = terrainData.GetDetailLayer(0, 0, terrainData.detailWidth, terrainData.detailHeight, 0);
+
+            Vector3 origin = terrain.GetPosition();
+
+            for (int y = 0; y < tilemapSize; y++)
+            {
+                for (int x = 0; x < tilemapSize; x++)
+                {
+                    float terrainSize = (MapsFile.WorldMapTerrainDim * MeshReader.GlobalScale);
+                    float tileSize = terrainSize / tilemapSize;
+
+                    Vector3 pos = origin;
+                    pos.x += terrain.terrainData.size.x / tilemapSize * x;
+                    pos.z += terrain.terrainData.size.z / tilemapSize * y;
+                    pos.y = terrain.terrainData.GetHeight(x, y) + 0.55f;
+
+                    var colliders = Physics.OverlapBox(pos, new Vector3(tileSize / 2, 0.5f, tileSize / 2));
+                    if (colliders.Length > 0 && !(colliders.Length == 1 && colliders[0] == terrainCollider))
+                    {
+                        if (Physics.CheckBox(pos, new Vector3(tileSize / 8, 0.5f, tileSize / 8)))
+                        {
+                            map[y * 2, x * 2] = 0;
+                            var cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                            cube.transform.position = pos;
+                            cube.transform.localScale = new Vector3(tileSize / 4, 1, tileSize / 4);
+                        }
+
+                        pos.x += tileSize / 2;
+                        if (Physics.CheckBox(pos, new Vector3(tileSize / 8, 0.5f, tileSize / 8)))
+                        {
+                            map[y * 2, (x * 2) + 1] = 0;
+                            var cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                            cube.transform.position = pos;
+                            cube.transform.localScale = new Vector3(tileSize / 4, 1, tileSize / 4);
+                        }
+
+                        pos.x -= tileSize / 2;
+                        pos.z += tileSize / 2;
+                        if (Physics.CheckBox(pos, new Vector3(tileSize / 8, 0.5f, tileSize / 8)))
+                        {
+                            map[(y * 2) + 1, x * 2] = 0;
+                            var cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                            cube.transform.position = pos;
+                            cube.transform.localScale = new Vector3(tileSize / 4, 1, tileSize / 4);
+                        }
+
+                        pos.x += tileSize / 2;
+                        if (Physics.CheckBox(pos, new Vector3(tileSize / 8, 0.5f, tileSize / 8)))
+                        {
+                            map[(y * 2) + 1, (x * 2) + 1] = 0;
+                            var cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                            cube.transform.position = pos;
+                            cube.transform.localScale = new Vector3(tileSize / 4, 1, tileSize / 4);
+                        }
+
+                        //var cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                        //cube.transform.position = pos;
+                        //cube.transform.localScale = new Vector3(tileSize - 0.2f, 1, tileSize - 0.2f);
+                    }
+
+                    //if (Physics.CheckBox(pos, new Vector3(tileSize / 2, 0.5f, tileSize / 2)))
+                    //{
+                    //    map[y * 2, x * 2] = 0;
+                    //    map[y * 2, (x * 2) + 1] = 0;
+                    //    map[(y * 2) + 1, x * 2] = 0;
+                    //    map[(y * 2) + 1, (x * 2) + 1] = 0;
+
+                    //    var cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    //    cube.transform.position = pos;
+                    //    cube.transform.localScale = new Vector3(tileSize, 1, tileSize);
+                    //}
+                }
+            }
+
+            terrainData.SetDetailLayer(0, 0, 0, map);
         }
         
         #endregion
