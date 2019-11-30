@@ -151,6 +151,8 @@ ChangeLog
 -------------------------------------------------------------------------------------------------
 2.8
 * Added support for live changes to mod settings.
+* Added option 'LazyDetailSetup' that runs grass setup on player movement rather than terrain creation.
+May help with loading time and memory management.
 
 2.7
 * Terrain where player is standing on is initialized first when mod is disabled and then enabled again.

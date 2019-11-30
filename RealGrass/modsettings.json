@@ -266,6 +266,13 @@
                     "Description": "Import textures from loose files (Textures/Grass).",
                     "$version": "v1",
                     "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
+                },
+                {
+                    "Value": true,
+                    "Name": "LazyDetailSetup",
+                    "Description": "Setups grass on player movement rather than terrain creation, which may help with initial loading time.",
+                    "$version": "v1",
+                    "$type": "DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings.ToggleKey"
                 }
             ],
             "$version": "v1"

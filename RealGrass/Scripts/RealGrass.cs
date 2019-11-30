@@ -9,8 +9,10 @@
 // #define TEST_PERFORMANCE
 
 using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using DaggerfallConnect.Utility;
 using DaggerfallWorkshop;
 using DaggerfallWorkshop.Game;
 using DaggerfallWorkshop.Game.Utility.ModSupport;
@@ -48,10 +50,19 @@ namespace RealGrass
         static GameObject fireflies;
         static GameObject butterflies;
 
+        /// <summary>
+        /// Setups grass on player movement rather than terrain creation.
+        /// </summary>
+        bool lazyDetailSetup;
+
+        HashSet<DaggerfallTerrain> terrainCache;
+
         DetailPrototypesManager detailPrototypesManager;
         DensityManager densityManager;
         bool isEnabled;
         Coroutine initTerrains;
+
+        bool isUpdatingTerrainDetails = false;
 
         internal const string TexturesFolder = "Grass";
 
@@ -224,7 +235,7 @@ namespace RealGrass
 
             // Update detail layers
             Color32[] tilemap = daggerTerrain.TileMap;
-            densityManager.InitDetailsLayers();
+            densityManager.InitDetailsLayers();  
             switch (climate)
             {
                 case ClimateBases.Temperate:
@@ -290,6 +301,7 @@ namespace RealGrass
 
             // Subscribe to events
             DaggerfallTerrain.OnPromoteTerrainData += DaggerfallTerrain_OnPromoteTerrainData;
+            StreamingWorld.OnUpdateTerrainsEnd += StreamingWorld_OnUpdateTerrainsEnd;
 
             // Place details on existing terrains
             if (initTerrains)
@@ -304,16 +316,13 @@ namespace RealGrass
         private void StopMod()
         {
             // Unsubscribe from events
-            DaggerfallTerrain.OnPromoteTerrainData -= DaggerfallTerrain_OnPromoteTerrainData;          
+            DaggerfallTerrain.OnPromoteTerrainData -= DaggerfallTerrain_OnPromoteTerrainData;
+            StreamingWorld.OnUpdateTerrainsEnd -= StreamingWorld_OnUpdateTerrainsEnd;     
 
             // Remove details from terrains
             Terrain[] terrains = GameManager.Instance.StreamingWorld.StreamingTarget.GetComponentsInChildren<Terrain>();
             foreach (TerrainData terrainData in terrains.Select(x => x.terrainData))
-            {
-                foreach (var layer in terrainData.GetSupportedLayers(0, 0, terrainData.detailWidth, terrainData.detailHeight))
-                    terrainData.SetDetailLayer(0, 0, layer, DensityManager.Empty);
                 terrainData.detailPrototypes = null;
-            }
 
             Debug.Log("Real Grass is now disabled; unsubscribed from terrain promotion.");
         }
@@ -397,7 +406,7 @@ namespace RealGrass
 
             if (change.HasChanged(grassSection, "Realistic"))
                 RealisticGrass = settings.GetValue<bool>(grassSection, "Realistic");
-            
+
             if (change.HasChanged(othersSection, "FlyingInsects"))
                 FlyingInsects = settings.GetValue<bool>(othersSection, "FlyingInsects");
 
@@ -405,6 +414,9 @@ namespace RealGrass
             {
                 DetailObjectDistance = settings.GetValue<int>(advancedSection, "DetailDistance");
                 DetailObjectDensity = settings.GetValue<float>(advancedSection, "DetailDensity");
+
+                if (lazyDetailSetup = settings.GetValue<bool>(advancedSection, "LazyDetailSetup"))
+                    terrainCache = new HashSet<DaggerfallTerrain>();
             }
 
             detailPrototypesManager = new DetailPrototypesManager(properties);
@@ -412,6 +424,35 @@ namespace RealGrass
 
             if (isEnabled)
                 RefreshTerrainDetailsAsync();
+        }
+
+
+        /// <summary>
+        /// Adds details to neighbour terrains and recreates cache to ensure it only contains known terrains.
+        /// </summary>
+        private IEnumerator UpdateTerrainDetails()
+        {
+            isUpdatingTerrainDetails = true;
+
+            var terrainCache = new HashSet<DaggerfallTerrain>();
+
+            foreach (var terrain in GameManager.Instance.StreamingTarget.GetComponentsInChildren<DaggerfallTerrain>())
+            {
+                if (this.terrainCache.Contains(terrain))
+                {
+                    terrainCache.Add(terrain);
+                }
+                else if (GetTerrainDistance(terrain.MapPixelX, terrain.MapPixelY) <= 1)
+                {
+                    AddTerrainDetails(terrain, terrain.GetComponent<Terrain>().terrainData);
+                    terrainCache.Add(terrain);
+                    yield return null;
+                }
+            }
+
+            this.terrainCache = terrainCache;
+
+            isUpdatingTerrainDetails = false;
         }
 
         /// <summary>
@@ -433,11 +474,25 @@ namespace RealGrass
             yield return null;
 
             // Do other terrains
-            var terrains = GameManager.Instance.StreamingWorld.StreamingTarget.GetComponentsInChildren<DaggerfallTerrain>();
-            foreach (DaggerfallTerrain daggerTerrain in terrains.Where(x => x != playerTerrain))
+            if (lazyDetailSetup)
             {
-                AddTerrainDetails(daggerTerrain, daggerTerrain.gameObject.GetComponent<Terrain>().terrainData);
-                yield return null;
+                // Invalidate all terrains (except player terrain) and run details update
+                if (AssertIsNotUpdatingTerrains())
+                {
+                    terrainCache.Clear();
+                    terrainCache.Add(playerTerrain);
+                    yield return StartCoroutine(UpdateTerrainDetails());
+                }
+            }
+            else
+            {
+                // Do all remaining terrains
+                var terrains = GameManager.Instance.StreamingWorld.StreamingTarget.GetComponentsInChildren<DaggerfallTerrain>();
+                foreach (DaggerfallTerrain daggerTerrain in terrains.Where(x => x != playerTerrain))
+                {
+                    AddTerrainDetails(daggerTerrain, daggerTerrain.gameObject.GetComponent<Terrain>().terrainData);
+                    yield return null;
+                }
             }
 
             initTerrains = null;
@@ -470,6 +525,12 @@ namespace RealGrass
             }
         }
 
+        private static int GetTerrainDistance(int terrainMapPixelX, int terrainMapPixelY)
+        {
+            DFPosition curMapPixel = GameManager.Instance.StreamingWorld.LocalPlayerGPS.CurrentMapPixel;
+            return Mathf.Max(Mathf.Abs(terrainMapPixelX - curMapPixel.X), Mathf.Abs(terrainMapPixelY - curMapPixel.Y));
+        }
+
         private void MessageReceiver(string message, object data, DFModMessageCallback callBack)
         {
             switch (message)
@@ -491,7 +552,41 @@ namespace RealGrass
 
         private void DaggerfallTerrain_OnPromoteTerrainData(DaggerfallTerrain sender, TerrainData terrainData)
         {
-            AddTerrainDetails(sender, terrainData);
+            if (lazyDetailSetup)
+            {
+                if (GetTerrainDistance(sender.MapPixelX, sender.MapPixelY) <= 1)
+                {
+                    // Update details immediately
+                    AddTerrainDetails(sender, terrainData);
+                    terrainCache.Add(sender);
+                }
+                else
+                {
+                    // Invalidate cache for lazy update
+                    terrainCache.Remove(sender);
+                }
+            }
+            else
+            {
+                AddTerrainDetails(sender, terrainData);
+            }
+        }
+
+        private void StreamingWorld_OnUpdateTerrainsEnd()
+        {
+            if (lazyDetailSetup && AssertIsNotUpdatingTerrains())
+                StartCoroutine(UpdateTerrainDetails());
+        }
+
+        private bool AssertIsNotUpdatingTerrains()
+        {
+            if (isUpdatingTerrainDetails)
+            {
+                Debug.LogError("Real Grass: Failed to update terrains because an update is already in progress.");
+                return false;
+            }
+
+            return true;
         }
 
         #endregion
